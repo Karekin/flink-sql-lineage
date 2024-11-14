@@ -65,6 +65,7 @@
     ]
   },
   "devDependencies": {
-    "@babel/cli": "^7.21.0"
+    "@babel/cli": "^7.21.0",
+    "style-loader": "^4.0.0"
   }
 }
