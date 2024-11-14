@@ -465,10 +465,10 @@
                     <configuration>
                         <java>
                             <eclipse>
-                                <file>style/spotless-formatter.xml</file>
+                                <file>/Volumes/karekinSSD1/project/flink-sql-lineage/style/spotless-formatter.xml</file>
                             </eclipse>
                             <licenseHeader>
-                                <file>style/license-header</file>
+                                <file>/Volumes/karekinSSD1/project/flink-sql-lineage/style/license-header</file>
                             </licenseHeader>
 
                             <!-- \# refers to the static imports -->
