@@ -3,6 +3,6 @@
 <configuration>
     <property>
         <name>hive.metastore.uris</name>
-        <value>thrift://192.168.90.150:9083</value>
+        <value>thrift://192.168.1.10:9083</value>
     </property>
 </configuration>

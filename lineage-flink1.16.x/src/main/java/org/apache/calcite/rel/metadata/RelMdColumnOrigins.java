@@ -134,6 +134,14 @@ public class RelMdColumnOrigins implements MetadataHandler<BuiltInMetadata.Colum
                         + DELIMITER
                         + tableFunctionScan.getRowType().getFieldNames().get(iOutputColumn - nLeftColumns);
                 return createDerivedColumnOrigins(set, transform);
+            } else if (rel.getRight() instanceof Uncollect) {
+                // Handle Uncollect (unnest operation) by deriving column origins from the left input
+                final Set<RelColumnOrigin> set = new LinkedHashSet<>();
+                for (Integer iInput : rel.getRequiredColumns().asList()) {
+                    set.addAll(mq.getColumnOrigins(rel.getLeft(), iInput));
+                }
+                // Since there is no direct field transformation in Uncollect, simply return the derived origins
+                return createDerivedColumnOrigins(set);
             }
             return mq.getColumnOrigins(rel.getRight(), iOutputColumn - nLeftColumns);
         }
