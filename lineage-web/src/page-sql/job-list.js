@@ -231,19 +231,27 @@ const Cm = () => {
   },]
 
   // get job list
-  const getJobList = async (params) => {
-    const res = await axios.get(`/tasks`, {
-      ...params,
-      pageNum: 1,
-      pageSize: 10
-    })
-    const {list} = res.data.data
-    setDataSource(list)
-    // if url from login
-    if(location.state.pageUrl === 'login') {
-      navigation(`/job/sql/${list[0].taskId}`)
-    }
-  }
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
+
+  const getJobList = async (params = { pageNum: 1, pageSize: 10 }) => {
+    const res = await axios.get(`/tasks`, { params });
+    const { list, total } = res.data.data;
+    setDataSource(list);
+    setPagination((prev) => ({
+      ...prev,
+      total,
+      current: params.pageNum,
+      pageSize: params.pageSize,
+    }));
+  };
+
+  useEffect(() => {
+    getJobList({ pageNum: pagination.current, pageSize: pagination.pageSize });
+  }, []);
 
   // delet job confirm
   const deletConfirm = id => {
@@ -283,63 +291,67 @@ const Cm = () => {
   }
 
   return (
-    <div className='left-box'>
-      <div className="p16 FBH FBJ">
-        <Breadcrumb separator="<">
-          <Breadcrumb.Item>Job</Breadcrumb.Item>
-        </Breadcrumb>
-        <Input 
-          ref={searchRef} 
-          placeholder={inputVisible && `enter keywords`} 
-          bordered={false} 
-          size='small' 
-          disabled={!inputVisible}
-          onBlur={(e) => {
-            setInputVisible(false)
-          }}
-          onKeyDown={(e) => {
-            getJobList(e)
-          }}
-        />
-        
-        <Tooltip title="search job">
-          <SearchOutlined className='mr8 fs16 fc7 hand' 
-            onClick={async() => {
-              await setInputVisible(true)
-              searchRef.current.focus()
-            }}
+      <div className='left-box'>
+        <div className="p16 FBH FBJ">
+          <Breadcrumb separator="<">
+            <Breadcrumb.Item>Job</Breadcrumb.Item>
+          </Breadcrumb>
+          <Input
+              ref={searchRef}
+              placeholder={inputVisible && `enter keywords`}
+              bordered={false}
+              size='small'
+              disabled={!inputVisible}
+              onBlur={() => setInputVisible(false)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  getJobList({ pageNum: pagination.current, pageSize: pagination.pageSize });
+                }
+              }}
           />
-        </Tooltip>
-        <Tooltip title="add job">
-          <PlusSquareOutlined 
-            className='fs16 fc7' 
-            onClick={() => {
-              setVisible(true)
-              setCurType('Add')
-            }}
+          <Tooltip title="search job">
+            <SearchOutlined className='mr8 fs16 fc7 hand'
+                            onClick={async () => {
+                              await setInputVisible(true);
+                              searchRef.current.focus();
+                            }}
+            />
+          </Tooltip>
+          <Tooltip title="add job">
+            <PlusSquareOutlined
+                className='fs16 fc7'
+                onClick={() => {
+                  setVisible(true);
+                  setCurType('Add');
+                }}
+            />
+          </Tooltip>
+        </div>
+        <div className='m16 p8 gray-bd r4'>
+          <Table
+              size="small"
+              dataSource={dataSource}
+              columns={columns}
+              pagination={{
+                current: pagination.current,
+                pageSize: pagination.pageSize,
+                total: pagination.total,
+                onChange: (page, pageSize) => {
+                  getJobList({ pageNum: page, pageSize }); // 动态加载分页数据
+                },
+              }}
+              onRow={(record) => ({
+                onMouseEnter: () => {
+                  setCurTaskId(record?.taskId);
+                  setCurRecord(record);
+                },
+                onMouseLeave: () => setCurTaskId(null),
+              })}
           />
-        </Tooltip>
+        </div>
+        <AddModal {...addModalProps} />
       </div>
-      <div className='m16 p8 gray-bd r4'>
-        <Table
-          size="small"
-          dataSource={dataSource}
-          columns={columns}
-          onRow={(record) => {
-            return {
-              onMouseEnter: (event) => {
-                setCurTaskId(record?.taskId)
-                setCurRecord(record)
-              },
-              onMouseLeave: (event) => setCurTaskId(null),
-            };
-          }}
-          
-        />
-      </div>
-      <AddModal {...addModalProps}/>
-    </div>
-  )
+  );
 }
 
 export default Cm
