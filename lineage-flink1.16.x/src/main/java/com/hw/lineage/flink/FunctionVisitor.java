@@ -29,25 +29,43 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * @description: FunctionVisitor
+ * @description: FunctionVisitor - 用于遍历 SQL 抽象语法树 (AST) 并提取函数信息
  * @author: HamaWhite
  */
 public class FunctionVisitor extends SqlBasicVisitor<Void> {
 
+    // 用于存储在 SQL 中发现的函数列表
     private final List<UnresolvedIdentifier> functionList = new ArrayList<>();
 
+    /**
+     * 访问 SQL 调用节点
+     *
+     * @param call 表示 SQL 调用的节点（例如函数调用）
+     * @return 空值（Void），表示无需返回具体数据
+     */
     @Override
     public Void visit(SqlCall call) {
+        // 判断当前节点是否是基本调用 (SqlBasicCall) 且操作符是函数 (SqlFunction)
         if (call instanceof SqlBasicCall && call.getOperator() instanceof SqlFunction) {
+            // 获取函数操作符
             SqlFunction function = (SqlFunction) call.getOperator();
+            // 获取函数名称
             SqlIdentifier opName = function.getNameAsId();
 
+            // 将函数名称解析为未解析标识符并添加到函数列表中
             functionList.add(UnresolvedIdentifier.of(opName.names));
         }
+        // 调用父类的 visit 方法以继续遍历其他节点
         return super.visit(call);
     }
 
+    /**
+     * 获取函数列表
+     *
+     * @return 未解析标识符（函数名称）的列表
+     */
     public List<UnresolvedIdentifier> getFunctionList() {
         return functionList;
     }
 }
+

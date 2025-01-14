@@ -24,8 +24,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 /**
- * @description: ColumnInfo
- * @author: HamaWhite
+ * @description: ColumnInfo - 用于存储表字段的元数据信息，包括字段名称、类型、注释、主键标识和水印信息。
  */
 @Data
 @NoArgsConstructor
@@ -33,13 +32,34 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 public class ColumnInfo {
 
+    /**
+     * 字段名称，用于标识字段。
+     * 例如：`id`
+     */
     private String columnName;
 
+    /**
+     * 字段类型，表示字段的数据类型。
+     * 例如：`BIGINT`, `VARCHAR(255)`
+     */
     private String columnType;
 
+    /**
+     * 字段注释，用于说明字段的用途。
+     * 例如：`Primary key of the table`
+     */
     private String comment;
 
+    /**
+     * 是否为主键，标识该字段是否为表的主键。
+     * true 表示是主键；false 表示不是主键。
+     */
     private Boolean primaryKey;
 
+    /**
+     * 水印信息，用于定义流处理中的时间属性。
+     * 例如：`WATERMARK FOR ts AS ts - INTERVAL '5' SECOND`
+     */
     private String watermark;
 }
+

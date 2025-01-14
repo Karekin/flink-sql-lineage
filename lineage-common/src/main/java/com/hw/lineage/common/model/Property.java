@@ -23,17 +23,33 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * @description: Property
- * @author: HamaWhite
+ * @description: Property - 表示一个属性的元数据信息，包括名称、值、描述和是否为自定义属性的标识。
  */
 @Data
 public class Property implements Serializable {
 
+    /**
+     * 属性名称，用于标识该属性。
+     * 例如：`maxRetries`
+     */
     private String name;
 
+    /**
+     * 属性值，表示属性的具体值。
+     * 例如：`5`
+     */
     private String value;
 
+    /**
+     * 属性描述，用于说明属性的用途或含义。
+     * 例如：`Maximum number of retry attempts.`
+     */
     private String description;
 
+    /**
+     * 是否为自定义属性的标识。
+     * 默认值为 `false`，表示为系统默认属性；
+     * 若为 `true`，则表示该属性是用户自定义的。
+     */
     private boolean custom = false;
 }

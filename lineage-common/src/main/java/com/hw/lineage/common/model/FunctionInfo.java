@@ -23,20 +23,35 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 /**
- * @description: FunctionInfo
- * @author: HamaWhite
+ * @description: FunctionInfo - 用于存储函数的元数据信息，包括函数名称、调用方式、实现类和描述等。
  */
 @Data
 @NoArgsConstructor
 @Accessors(chain = true)
 public class FunctionInfo {
 
+    /**
+     * 函数名称，用于标识函数。
+     * 例如：`my_function`
+     */
     private String functionName;
 
+    /**
+     * 函数的调用格式，描述函数的参数和使用方式。
+     * 例如：`my_function(arg1, arg2)`
+     */
     private String invocation;
 
+    /**
+     * 函数实现的完整类名，便于追溯到具体的实现类。
+     * 例如：`com.example.MyFunction`
+     */
     private String className;
 
+    /**
+     * 函数的描述信息，用于说明函数的功能和作用。
+     * 例如：`This function performs XYZ operation.`
+     */
     private String descr;
-
 }
+

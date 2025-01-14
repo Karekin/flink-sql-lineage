@@ -35,17 +35,32 @@ import java.util.stream.Stream;
 @NoArgsConstructor
 @AllArgsConstructor
 @Accessors(chain = true)
+/**
+ * @description: FunctionResult - 用于存储函数的相关信息，包括 Catalog 名称、数据库名称和函数名称。
+ */
 public class FunctionResult {
 
+    // Catalog 名称，表示函数所属的 Catalog
     private String catalogName;
 
+    // 数据库名称，表示函数所属的数据库
     private String database;
 
+    // 函数名称
     private String functionName;
 
+    /**
+     * 静态方法，用于构建一组 FunctionResult 对象
+     *
+     * @param catalog      Catalog 名称
+     * @param database     数据库名称
+     * @param expectedArray 函数名称数组，表示需要构建的函数名称
+     * @return 包含所有 FunctionResult 对象的集合
+     */
     public static Set<FunctionResult> buildResult(String catalog, String database, String[] expectedArray) {
-        return Stream.of(expectedArray)
-                .map(e -> new FunctionResult(catalog, database, e))
-                .collect(Collectors.toSet());
+        return Stream.of(expectedArray) // 将函数名称数组转换为流
+                .map(e -> new FunctionResult(catalog, database, e)) // 为每个函数名称创建 FunctionResult 对象
+                .collect(Collectors.toSet()); // 将结果收集为 Set 集合
     }
 }
+
