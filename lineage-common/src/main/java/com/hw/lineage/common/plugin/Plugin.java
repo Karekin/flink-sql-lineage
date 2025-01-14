@@ -21,24 +21,26 @@ package com.hw.lineage.common.plugin;
 import static com.hw.lineage.common.util.Preconditions.checkNotNull;
 
 /**
- * Interface for plugins. Plugins typically extend this interface in their SPI and the concrete
- * implementations of a service then implement the SPI contract.
+ * 插件接口。插件通常通过其 SPI（Service Provider Interface）扩展该接口，
+ * 服务的具体实现类需遵循 SPI 合约并实现该接口。
  *
- * @description: Plugin
- * @author: HamaWhite
+ * @description: Plugin（插件接口）
+ * 提供了获取插件加载时所使用的类加载器的方法，便于某些需要动态类加载的插件在加载后继续使用。
  */
 public interface Plugin {
 
     /**
-     * Helper method to get the class loader used to load the plugin. This may be needed for some
-     * plugins that use dynamic class loading afterwards the plugin was loaded.
+     * 获取用于加载插件的类加载器的辅助方法。
+     * 某些插件在加载后可能需要使用动态类加载，此方法提供了访问插件加载时类加载器的能力。
      *
-     * @return the class loader used to load the plugin.
+     * @return 用于加载插件的类加载器
      */
     default ClassLoader getClassLoader() {
         return checkNotNull(
-                this.getClass().getClassLoader(),
-                "%s plugin with null class loader",
-                this.getClass().getName());
+                this.getClass().getClassLoader(), // 获取当前插件类的类加载器
+                "%s plugin with null class loader", // 异常消息模板
+                this.getClass().getName() // 插件类的全限定名称
+        );
     }
 }
+

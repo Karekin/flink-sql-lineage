@@ -58,8 +58,8 @@ public class DirectoryBasedPluginFinder implements PluginFinder {
     private final Path pluginsRootDir;
 
     /**
-     * 用于匹配jar文件的路径匹配器。
-     * 基于pluginsRootDir的文件系统创建，用于在遍历插件目录时快速识别jar文件。
+     * 用于匹配 jar 文件的路径匹配器。
+     * 基于 pluginsRootDir 的文件系统创建，用于在遍历插件目录时快速识别 jar 文件。
      */
     private final PathMatcher jarFileMatcher;
 
