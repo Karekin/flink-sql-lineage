@@ -1,21 +1,3 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.hw.lineage.flink.tablefuncion;
 
 import com.hw.lineage.flink.basic.AbstractBasicTest;
@@ -24,30 +6,39 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- *
- * The test case comes from <a href="https://nightlies.apache.org/flink/flink-docs-release-1.14/docs/dev/table/functions/udfs/#table-functions">flink-table-functions</a>
- *
- * @description: TableFunctionTest
- * @author: HamaWhite
+ * @description: TableFunctionTest 类，用于测试在 Flink 中使用表函数（UDTF）的 SQL 数据血缘分析功能。
+ * 表函数（UDTF）是一种可以将一行输入扩展为多行输出的函数，适用于对字段进行拆分、扩展等操作。
+ * 测试用例主要涵盖了以下场景：
+ * - 表函数的基本使用。
+ * - 表函数与左连接的结合使用。
+ * - 表函数输出字段的重命名。
+ * - 表函数中包含其他函数的处理。
+ * 数据来源包括 MySQL CDC 表，数据写入 Hudi 表。
+ * <p>
+ * 来源链接：<a href="https://nightlies.apache.org/flink/flink-docs-release-1.14/docs/dev/table/functions/udfs/#table-functions">Flink Table Functions</a>
+ * </p>
  */
 public class TableFunctionTest extends AbstractBasicTest {
 
+    /**
+     * 在每个测试用例执行之前，创建测试所需的表和函数。
+     */
     @Before
     public void createTable() {
-        // create mysql cdc table ods_mysql_users
+        // 创建 MySQL CDC 表 ods_mysql_users
         createTableOfOdsMysqlUsers();
 
-        // create my_split_udtf
+        // 创建表函数 my_split_udtf
         createFunctionOfMySplit();
 
-        // create hudi sink table dwd_hudi_users
+        // 创建 Hudi Sink 表 dwd_hudi_users
         createTableOfDwdHudiUsers();
     }
 
     /**
-     * insert-select with my_split_udtf
+     * 测试场景：表函数的基本使用。
      * <p>
-     * insert into hudi table from mysql cdc stream table.
+     * SQL 功能：从 MySQL CDC 表中使用表函数 my_split_udtf 拆分字段，并将结果插入到 Hudi 表中。
      */
     @Test
     public void testInsertSelectWithUDTF() {
@@ -63,6 +54,7 @@ public class TableFunctionTest extends AbstractBasicTest {
                 "   ods_mysql_users ," +
                 "   LATERAL TABLE(my_split_udtf(name))";
 
+        // 预期的血缘关系
         String[][] expectedArray = {
                 {"ods_mysql_users", "name", "dwd_hudi_users", "id", "my_split_udtf(name).length"},
                 {"ods_mysql_users", "name", "dwd_hudi_users", "name"},
@@ -72,14 +64,15 @@ public class TableFunctionTest extends AbstractBasicTest {
                 {"ods_mysql_users", "birthday", "dwd_hudi_users", "partition", "DATE_FORMAT(birthday, 'yyyyMMdd')"}
         };
 
+        // 分析血缘关系和表函数的使用
         analyzeLineage(sql, expectedArray);
         analyzeFunction(sql, new String[]{"my_split_udtf"});
     }
 
     /**
-     * insert-select left join with my_split_udtf
+     * 测试场景：表函数与左连接的结合使用。
      * <p>
-     * insert into hudi table from mysql cdc stream table.
+     * SQL 功能：将表函数的结果与源表通过左连接关联，并插入到 Hudi 表中。
      */
     @Test
     public void testInsertSelectLeftJoinUDTF() {
@@ -96,6 +89,7 @@ public class TableFunctionTest extends AbstractBasicTest {
                 "LEFT JOIN " +
                 "   LATERAL TABLE(my_split_udtf(name)) ON TRUE";
 
+        // 预期的血缘关系
         String[][] expectedArray = {
                 {"ods_mysql_users", "name", "dwd_hudi_users", "id", "my_split_udtf(name).length"},
                 {"ods_mysql_users", "name", "dwd_hudi_users", "name"},
@@ -105,14 +99,15 @@ public class TableFunctionTest extends AbstractBasicTest {
                 {"ods_mysql_users", "birthday", "dwd_hudi_users", "partition", "DATE_FORMAT(birthday, 'yyyyMMdd')"}
         };
 
+        // 分析血缘关系和表函数的使用
         analyzeLineage(sql, expectedArray);
         analyzeFunction(sql, new String[]{"my_split_udtf"});
     }
 
     /**
-     * insert-select left join with my_split_udtf and rename fields of the function in SQL
+     * 测试场景：表函数输出字段重命名。
      * <p>
-     * insert into hudi table from mysql cdc stream table.
+     * SQL 功能：在 SQL 中对表函数的输出字段重命名，并将结果插入到 Hudi 表中。
      */
     @Test
     public void testInsertSelectLeftJoinAndRenameUDTF() {
@@ -129,6 +124,7 @@ public class TableFunctionTest extends AbstractBasicTest {
                 "LEFT JOIN " +
                 "   LATERAL TABLE(my_split_udtf(name)) AS T(new_word, new_length) ON TRUE";
 
+        // 预期的血缘关系
         String[][] expectedArray = {
                 {"ods_mysql_users", "name", "dwd_hudi_users", "id", "my_split_udtf(name).length"},
                 {"ods_mysql_users", "name", "dwd_hudi_users", "name"},
@@ -138,12 +134,15 @@ public class TableFunctionTest extends AbstractBasicTest {
                 {"ods_mysql_users", "birthday", "dwd_hudi_users", "partition", "DATE_FORMAT(birthday, 'yyyyMMdd')"}
         };
 
+        // 分析血缘关系和表函数的使用
         analyzeLineage(sql, expectedArray);
         analyzeFunction(sql, new String[]{"my_split_udtf"});
     }
 
     /**
-     * <a href="https://github.com/HamaWhiteGG/flink-sql-lineage/issues/66">UDTF resolve exceptions when functions in it</a>
+     * 测试场景：表函数中使用其他函数（如 CAST）。
+     * <p>
+     * SQL 功能：对字段进行类型转换后传入表函数，并将结果插入到 Hudi 表中。
      */
     @Test
     public void testInsertSelectWithFunctionInUDTF() {
@@ -159,6 +158,7 @@ public class TableFunctionTest extends AbstractBasicTest {
                 "   ods_mysql_users ," +
                 "   LATERAL TABLE(my_split_udtf(CAST(name AS STRING))) AS T(new_word, new_length)";
 
+        // 预期的血缘关系
         String[][] expectedArray = {
                 {"ods_mysql_users", "name", "dwd_hudi_users", "id",
                         "my_split_udtf(CAST(name):VARCHAR(2147483647) CHARACTER SET \"UTF-16LE\").length"},
@@ -170,12 +170,13 @@ public class TableFunctionTest extends AbstractBasicTest {
                 {"ods_mysql_users", "birthday", "dwd_hudi_users", "partition", "DATE_FORMAT(birthday, 'yyyyMMdd')"}
         };
 
+        // 分析血缘关系和表函数的使用
         analyzeLineage(sql, expectedArray);
         analyzeFunction(sql, new String[]{"my_split_udtf"});
     }
 
     /**
-     * Create my_split_udtf
+     * 创建表函数 my_split_udtf。
      */
     private void createFunctionOfMySplit() {
         context.execute("DROP FUNCTION IF EXISTS my_split_udtf");
@@ -184,3 +185,4 @@ public class TableFunctionTest extends AbstractBasicTest {
                 "AS 'com.hw.lineage.flink.tablefuncion.MySplitFunction'");
     }
 }
+

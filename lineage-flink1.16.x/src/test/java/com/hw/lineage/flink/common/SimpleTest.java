@@ -1,21 +1,3 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.hw.lineage.flink.common;
 
 import com.hw.lineage.flink.basic.AbstractBasicTest;
@@ -24,22 +6,29 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * The test case comes from <a href="https://github.com/HamaWhiteGG/flink-sql-lineage/issues/53">main branch test error</a>, thanks
+ * 测试用例来源：<a href="https://github.com/HamaWhiteGG/flink-sql-lineage/issues/53">main branch test error</a>，感谢贡献者。
  *
- * @description: SimpleTest
- * @author: HamaWhite
+ * @description: SimpleTest类，测试SQL数据血缘分析功能，主要验证字段映射和字段拼接的正确性。
  */
 public class SimpleTest extends AbstractBasicTest {
 
+    /**
+     * 在每个测试用例执行之前调用，创建测试所需的表结构。
+     */
     @Before
     public void createTable() {
-        // create mysql table ods_user
+        // 创建源表 ods_user，模拟 MySQL 数据表
         createTableOfOdsUser();
 
-        // create mysql table mysql_user
+        // 创建目标表 mysql_user，模拟 MySQL 数据表
         createTableOfMysqlUser();
     }
 
+    /**
+     * 测试字段拼接的血缘分析。
+     * <p>
+     * 测试场景：从源表 ods_user 插入数据到目标表 mysql_user，使用 CONCAT 函数拼接 first_name 和 last_name 生成 full_name 字段。
+     */
     @Test
     public void testConcat() {
         String sql = "INSERT INTO mysql_user                            " +
@@ -50,6 +39,7 @@ public class SimpleTest extends AbstractBasicTest {
                 "FROM                                                   " +
                 "       ods_user                                        ";
 
+        // 预期的字段血缘关系
         String[][] expectedArray = {
                 {"ods_user", "id", "mysql_user", "id"},
                 {"ods_user", "birthday", "mysql_user", "birthday"},
@@ -57,9 +47,23 @@ public class SimpleTest extends AbstractBasicTest {
                 {"ods_user", "last_name", "mysql_user", "full_name", "CONCAT(first_name, last_name)"}
         };
 
+        // 分析字段血缘关系并验证
         analyzeLineage(sql, expectedArray);
     }
 
+    /**
+     * 创建目标表 mysql_user。
+     * <p>
+     * 表结构：
+     * - id：主键，BIGINT 类型
+     * - birthday：时间戳字段，TIMESTAMP(3) 类型
+     * - full_name：拼接后的全名，STRING 类型
+     * <p>
+     * 表连接器配置：
+     * - 使用 JDBC 连接器连接到 MySQL 数据库
+     * - 数据库地址：`jdbc:mysql://127.0.0.1:3306/demo`
+     * - 表名：`mysql_user`
+     */
     protected void createTableOfMysqlUser() {
         context.execute("DROP TABLE IF EXISTS mysql_user ");
         context.execute("CREATE TABLE IF NOT EXISTS mysql_user (    " +
@@ -75,6 +79,21 @@ public class SimpleTest extends AbstractBasicTest {
                 ")");
     }
 
+    /**
+     * 创建源表 ods_user。
+     * <p>
+     * 表结构：
+     * - id：主键，BIGINT 类型
+     * - birthday：时间戳字段，TIMESTAMP(3) 类型
+     * - first_name：名，STRING 类型
+     * - last_name：姓，STRING 类型
+     * - company_name：公司名称，STRING 类型
+     * <p>
+     * 表连接器配置：
+     * - 使用 JDBC 连接器连接到 MySQL 数据库
+     * - 数据库地址：`jdbc:mysql://127.0.0.1:3306/demo`
+     * - 表名：`ods_user`
+     */
     protected void createTableOfOdsUser() {
         context.execute("DROP TABLE IF EXISTS ods_user ");
         context.execute("CREATE TABLE IF NOT EXISTS ods_user (      " +
@@ -92,3 +111,4 @@ public class SimpleTest extends AbstractBasicTest {
                 ")");
     }
 }
+

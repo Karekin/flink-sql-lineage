@@ -1,21 +1,3 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.hw.lineage.flink.window;
 
 import com.hw.lineage.flink.basic.AbstractBasicTest;
@@ -24,24 +6,32 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * @description: WindowTest
- * @author: HamaWhite
+ * @description: WindowTest 类，用于测试 Flink SQL 中的窗口函数（如 ROW_NUMBER()）及其数据血缘关系的解析。
+ * 测试场景包括：
+ * - 使用 ROW_NUMBER() 对流式数据进行排序和分组操作。
+ * - 将处理结果写入 Hudi 表。
+ * 窗口函数可以基于分组和排序生成行号，用于去重、排名等操作。
+ * </p>
  */
 public class WindowTest extends AbstractBasicTest {
 
+    /**
+     * 在每个测试用例执行之前，创建测试所需的表。
+     */
     @Before
     public void createTable() {
-        // create mysql cdc table ods_mysql_users
+        // 创建 MySQL CDC 表 ods_mysql_users
         createTableOfOdsMysqlUsers();
 
-        // create hudi sink table dwd_hudi_users
+        // 创建 Hudi Sink 表 dwd_hudi_users
         createTableOfDwdHudiUsers();
     }
 
     /**
-     * insert-select with ROW_NUMBER()
+     * 测试场景：使用单个 ROW_NUMBER() 窗口函数。
      * <p>
-     * insert into hudi table from mysql cdc stream table.
+     * SQL 功能：从 MySQL 表 ods_mysql_users 中读取数据，基于 ID 分组，按时间戳（ts）降序生成行号（rowNum），
+     * 将处理结果插入到 Hudi 表 dwd_hudi_users。
      */
     @Test
     public void testInsertSelectRowNumber() {
@@ -56,6 +46,7 @@ public class WindowTest extends AbstractBasicTest {
                 "FROM" +
                 "   ods_mysql_users";
 
+        // 预期的血缘关系
         String[][] expectedArray = {
                 {"ods_mysql_users", "ts", "dwd_hudi_users", "id",
                         "ROW_NUMBER() OVER (PARTITION BY id ORDER BY ts DESC NULLS LAST)"},
@@ -68,13 +59,15 @@ public class WindowTest extends AbstractBasicTest {
                 {"ods_mysql_users", "birthday", "dwd_hudi_users", "partition", "DATE_FORMAT(birthday, 'yyyyMMdd')"}
         };
 
+        // 分析血缘关系
         analyzeLineage(sql, expectedArray);
     }
 
     /**
-     * insert-select with two ROW_NUMBER()
+     * 测试场景：使用两个 ROW_NUMBER() 窗口函数。
      * <p>
-     * insert into hudi table from mysql cdc stream table.
+     * SQL 功能：从 MySQL 表 ods_mysql_users 中读取数据，基于 ID 分组生成行号（rowNum），
+     * 同时基于 NAME 分组生成另一个行号并将其转换为字符串类型，最终将处理结果插入到 Hudi 表 dwd_hudi_users。
      */
     @Test
     public void testInsertSelectTwoRowNumber() {
@@ -89,6 +82,7 @@ public class WindowTest extends AbstractBasicTest {
                 "FROM" +
                 "   ods_mysql_users";
 
+        // 预期的血缘关系
         String[][] expectedArray = {
                 {"ods_mysql_users", "ts", "dwd_hudi_users", "id",
                         "ROW_NUMBER() OVER (PARTITION BY id ORDER BY ts DESC NULLS LAST)"},
@@ -104,6 +98,7 @@ public class WindowTest extends AbstractBasicTest {
                 {"ods_mysql_users", "birthday", "dwd_hudi_users", "partition", "DATE_FORMAT(birthday, 'yyyyMMdd')"}
         };
 
+        // 分析血缘关系
         analyzeLineage(sql, expectedArray);
     }
 }

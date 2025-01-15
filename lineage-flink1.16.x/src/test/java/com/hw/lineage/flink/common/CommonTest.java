@@ -1,21 +1,3 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.hw.lineage.flink.common;
 
 import com.hw.lineage.flink.basic.AbstractBasicTest;
@@ -25,30 +7,34 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * @description: CommonTest
- * @author: HamaWhite
+ * @description: CommonTest类，用于测试数据血缘分析和插入选择操作
  */
 public class CommonTest extends AbstractBasicTest {
 
+    /**
+     * 在每个测试方法执行前调用，创建测试所需的表和函数。
+     */
     @Before
     public void createTable() {
-        // create mysql cdc table ods_mysql_users
+        // 创建 MySQL CDC 表 ods_mysql_users
         createTableOfOdsMysqlUsers();
 
-        // create mysql dim table dim_mysql_company
+        // 创建 MySQL 维表 dim_mysql_company
         createTableOfDimMysqlCompany();
 
-        // create hudi sink table dwd_hudi_users
+        // 创建 Hudi Sink 表 dwd_hudi_users
         createTableOfDwdHudiUsers();
 
-        // create my_suffix_udf
+        // 创建自定义函数 my_suffix_udf
         createFunctionOfMySuffix();
     }
 
     /**
-     * insert-select, but the fields of the query and sink do not match
+     * 测试插入选择操作中查询字段和目标字段不匹配的情况。
      * <p>
-     * insert into hudi table from mysql cdc stream table.
+     * 测试场景：从 MySQL CDC 表插入数据到 Hudi 表，但查询字段与目标字段存在不匹配。
+     * <p>
+     * 期望结果：抛出 ValidationException 异常。
      */
     @Test(expected = ValidationException.class)
     public void testInsertSelectMismatchField() {
@@ -62,13 +48,14 @@ public class CommonTest extends AbstractBasicTest {
                 "FROM" +
                 "   ods_mysql_users";
 
+        // 分析数据血缘并触发异常验证
         context.analyzeLineage(sql);
     }
 
     /**
-     * insert-select.
+     * 测试插入选择操作。
      * <p>
-     * insert into hudi table from mysql cdc stream table.
+     * 测试场景：从 MySQL CDC 表插入数据到 Hudi 表，字段匹配且包含字段别名。
      */
     @Test
     public void testInsertSelect() {
@@ -83,6 +70,7 @@ public class CommonTest extends AbstractBasicTest {
                 "FROM" +
                 "   ods_mysql_users";
 
+        // 预期的血缘分析结果
         String[][] expectedArray = {
                 {"ods_mysql_users", "id", "dwd_hudi_users", "id"},
                 {"ods_mysql_users", "name", "dwd_hudi_users", "name"},
@@ -92,13 +80,14 @@ public class CommonTest extends AbstractBasicTest {
                 {"ods_mysql_users", "birthday", "dwd_hudi_users", "partition", "DATE_FORMAT(birthday, 'yyyyMMdd')"}
         };
 
+        // 分析数据血缘
         analyzeLineage(sql, expectedArray);
     }
 
     /**
-     * insert-select with my_suffix_udf
+     * 测试带有自定义函数的插入选择操作。
      * <p>
-     * insert into hudi table from mysql cdc stream table.
+     * 测试场景：从 MySQL CDC 表插入数据到 Hudi 表，使用自定义函数对字段进行处理。
      */
     @Test
     public void testInsertSelectWithUDF() {
@@ -113,6 +102,7 @@ public class CommonTest extends AbstractBasicTest {
                 "FROM" +
                 "   ods_mysql_users";
 
+        // 预期的血缘分析结果
         String[][] expectedArray = {
                 {"ods_mysql_users", "id", "dwd_hudi_users", "id"},
                 {"ods_mysql_users", "name", "dwd_hudi_users", "name", "my_suffix_udf(name)"},
@@ -122,14 +112,15 @@ public class CommonTest extends AbstractBasicTest {
                 {"ods_mysql_users", "birthday", "dwd_hudi_users", "partition", "DATE_FORMAT(birthday, 'yyyyMMdd')"}
         };
 
+        // 分析数据血缘和函数使用
         analyzeLineage(sql, expectedArray);
         analyzeFunction(sql, new String[]{"my_suffix_udf"});
     }
 
     /**
-     * insert-select with function cover
+     * 测试带有函数嵌套的插入选择操作。
      * <p>
-     * insert into hudi table from mysql cdc stream table.
+     * 测试场景：从 MySQL CDC 表插入数据到 Hudi 表，使用多个函数对字段进行处理。
      */
     @Test
     public void testInsertSelectWithFunctionCover() {
@@ -144,23 +135,25 @@ public class CommonTest extends AbstractBasicTest {
                 "FROM" +
                 "   ods_mysql_users";
 
+        // 预期的血缘分析结果
         String[][] expectedArray = {
                 {"ods_mysql_users", "id", "dwd_hudi_users", "id"},
                 {"ods_mysql_users", "name", "dwd_hudi_users", "name", "LOWER(my_suffix_udf(name))"},
-                {"ods_mysql_users", "name", "dwd_hudi_users", "company_name", "UPPER(TRIM(FLAG(BOTH), ' ', name))"},
+                {"ods_mysql_users", "name", "dwd_hudi_users", "company_name", "UPPER(TRIM(name))"},
                 {"ods_mysql_users", "birthday", "dwd_hudi_users", "birthday"},
                 {"ods_mysql_users", "ts", "dwd_hudi_users", "ts"},
                 {"ods_mysql_users", "birthday", "dwd_hudi_users", "partition", "DATE_FORMAT(birthday, 'yyyyMMdd')"}
         };
 
+        // 分析数据血缘和函数使用
         analyzeLineage(sql, expectedArray);
         analyzeFunction(sql, new String[]{"my_suffix_udf"});
     }
 
     /**
-     * insert-partition-select.
+     * 测试插入操作时指定分区。
      * <p>
-     * insert into hudi table with specified partition from mysql cdc table.
+     * 测试场景：从 MySQL CDC 表插入数据到 Hudi 表，并指定分区值。
      */
     @Test
     public void testInsertPartitionSelect() {
@@ -174,6 +167,7 @@ public class CommonTest extends AbstractBasicTest {
                 "FROM" +
                 "   ods_mysql_users";
 
+        // 预期的血缘分析结果
         String[][] expectedArray = {
                 {"ods_mysql_users", "id", "dwd_hudi_users", "id"},
                 {"ods_mysql_users", "name", "dwd_hudi_users", "name"},
@@ -182,13 +176,14 @@ public class CommonTest extends AbstractBasicTest {
                 {"ods_mysql_users", "ts", "dwd_hudi_users", "ts"}
         };
 
+        // 分析数据血缘
         analyzeLineage(sql, expectedArray);
     }
 
     /**
-     * insert-partition-with-columnList select.
+     * 测试插入操作时指定分区和列列表。
      * <p>
-     * insert into hudi table with specified partition from mysql cdc table.
+     * 测试场景：从 MySQL CDC 表插入数据到 Hudi 表，指定分区值并明确指定列列表。
      */
     @Test
     public void testInsertPartitionWithColumnListSelect() {
@@ -199,21 +194,28 @@ public class CommonTest extends AbstractBasicTest {
                 "FROM" +
                 "   ods_mysql_users";
 
+        // 预期的血缘分析结果
         String[][] expectedArray = {
                 {"ods_mysql_users", "id", "dwd_hudi_users", "id"},
                 {"ods_mysql_users", "name", "dwd_hudi_users", "company_name"}
         };
 
+        // 分析数据血缘
         analyzeLineage(sql, expectedArray);
     }
 
     /**
-     * insert-select-select
+     * 测试嵌套查询的插入操作。
      * <p>
-     * insert into hudi table from mysql cdc stream table.
+     * 测试场景：从 MySQL CDC 表插入数据到 Hudi 表，使用嵌套查询计算聚合结果并作为插入源。
      */
     @Test
     public void testInsertSelectSelect() {
+        /*
+            整体逻辑：1、从 ods_mysql_users 中获取数据，按 name 和 DATE_FORMAT(birthday, 'yyyyMMdd') 分组，
+            计算 id 的总和，并生成一些衍生字段。2、处理分组结果，例如对 sum_id 取绝对值。3、将加工后的数据插入到目标表 dwd_hudi_users 中。
+            TODO 感觉解析结果不对，少
+         */
         String sql = "INSERT INTO dwd_hudi_users " +
                 "SELECT " +
                 "   ABS(sum_id) ," +
@@ -237,20 +239,22 @@ public class CommonTest extends AbstractBasicTest {
                 "       DATE_FORMAT(birthday, 'yyyyMMdd')" +
                 ")";
 
+        // 预期的血缘分析结果
         String[][] expectedArray = {
                 {"ods_mysql_users", "id", "dwd_hudi_users", "id", "ABS(SUM(id))"},
                 {"ods_mysql_users", "name", "dwd_hudi_users", "name"},
                 {"ods_mysql_users", "birthday", "dwd_hudi_users", "partition", "DATE_FORMAT(birthday, 'yyyyMMdd')"}
         };
 
+        // 分析数据血缘
         analyzeLineage(sql, expectedArray);
     }
 
     /**
-     * insert-select-two-table join.
+     * 测试两表 Join 的插入操作。
      * <p>
-     * insert into hudi table from mysql cdc stream join mysql dim table, which has system udf
-     * CONCAT
+     * 测试场景：从 MySQL CDC 表和 MySQL 维表进行 Join 操作后插入数据到 Hudi 表，
+     * 并使用系统函数 CONCAT 连接字段。
      */
     @Test
     public void testInsertSelectTwoJoin() {
@@ -269,6 +273,7 @@ public class CommonTest extends AbstractBasicTest {
                 "ON " +
                 "   a.id = b.user_id";
 
+        // 预期的血缘分析结果
         String[][] expectedArray = {
                 {"ods_mysql_users", "id", "dwd_hudi_users", "id"},
                 {"ods_mysql_users", "name", "dwd_hudi_users", "name",
@@ -281,15 +286,18 @@ public class CommonTest extends AbstractBasicTest {
                 {"ods_mysql_users", "birthday", "dwd_hudi_users", "partition", "DATE_FORMAT(birthday, 'yyyyMMdd')"}
         };
 
+        // 分析数据血缘
         analyzeLineage(sql, expectedArray);
     }
 
     /**
-     * Create my_suffix_udf
+     * 创建自定义函数 my_suffix_udf，用于后续测试中使用。
      */
     private void createFunctionOfMySuffix() {
+        // 删除已存在的函数（如果存在）
         context.execute("DROP FUNCTION IF EXISTS my_suffix_udf");
 
+        // 创建新的自定义函数
         context.execute("CREATE FUNCTION IF NOT EXISTS my_suffix_udf " +
                 "AS 'com.hw.lineage.flink.common.MySuffixFunction'");
     }

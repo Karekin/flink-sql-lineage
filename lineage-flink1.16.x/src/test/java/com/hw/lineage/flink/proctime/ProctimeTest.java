@@ -1,21 +1,3 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.hw.lineage.flink.proctime;
 
 import com.hw.lineage.flink.basic.AbstractBasicTest;
@@ -27,37 +9,37 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * The test case comes from <a href="https://github.com/HamaWhiteGG/flink-sql-lineage/issues/38">The field relationship
- * of PROCTIME() type is parsed incorrectly</a>, thanks
+ * @description: ProctimeTest 类，用于测试带有 PROCTIME() 类型字段的 SQL 解析及血缘关系分析。
+ * PROCTIME() 是一种特殊的处理时间字段类型，主要用于流式数据处理中。测试解决了 PROCTIME() 字段在血缘解析中的问题。
  * <p>
- * <p>
- * The solution of PROCTIME() is the same as LOCALTIMESTAMP, it is enhanced in the getColumnOrigins(Project rel...) method.
- * LOCALTIMESTAMP has been processed, so the lineage of PROCTIME() can be directly parsed out.
- * <p>
- * But when PROCTIME() is the first field, the obtained blood relationship will be confused.
- * Therefore, add the computeIndexWithOffset method to calculate the correct source table number {@link RelMdColumnOrigins} ,
- * and this method is called by {@link RelMdColumnOrigins#getColumnOrigins(Project, RelMetadataQuery, int)}
- *
- * @description: ProctimeTest
- * @author: HamaWhite
+ * 测试来源：<a href="https://github.com/HamaWhiteGG/flink-sql-lineage/issues/38">PROCTIME()字段血缘关系解析错误</a>，
+ * 通过增强 getColumnOrigins 方法解决该问题。
  */
 public class ProctimeTest extends AbstractBasicTest {
 
+    /**
+     * 在每个测试用例执行前调用，创建测试所需的表。
+     */
     @Before
     public void createTable() {
-        // create kafka source table ST
+        // 创建 Kafka 源表 ST
         createTableOfST();
 
-        // create print sink table TT
+        // 创建带有首字段为 PROCTIME()的打印 Sink 表 TT
         createTableOfWithFirstProcTime();
 
-        // create datagen source table datagen_source
+        // 创建 Datagen 源表 datagen_source
         createTableOfDatagenSource();
 
-        // create print sink table print_sink
+        // 创建打印Sink表 print_sink
         createTableOfPrintSink();
     }
 
+    /**
+     * 测试场景：将 Kafka 源表 ST 中的数据插入到 Sink 表 TT，包含首字段为 PROCTIME()。
+     * <p>
+     * 验证点：血缘关系应正确映射，特别是首字段的 PROCTIME()类型字段。
+     */
     @Test
     public void testInsertSelectWithFirstProcTimeField() {
         String sql = "INSERT INTO TT(make_time, A, B) " +
@@ -68,14 +50,21 @@ public class ProctimeTest extends AbstractBasicTest {
                 "FROM" +
                 "       ST ";
 
+        // 预期的血缘关系
         String[][] expectedArray = {
                 {"ST", "make_time", "TT", "make_time"},
                 {"ST", "a", "TT", "A"},
                 {"ST", "b", "TT", "B"}
         };
+        // 分析血缘关系
         analyzeLineage(sql, expectedArray);
     }
 
+    /**
+     * 测试场景：将Datagen源表 datagen_source 的数据插入到Sink表 print_sink，包含末字段为PROCTIME()。
+     * <p>
+     * 验证点：血缘关系应正确映射，尤其是PROCTIME()类型字段的解析。
+     */
     @Test
     public void testInsertSelectWithLastProctimeField() {
         String sql = "INSERT INTO print_sink(id, name, make_time) " +
@@ -86,17 +75,24 @@ public class ProctimeTest extends AbstractBasicTest {
                 "FROM" +
                 "       datagen_source ";
 
+        // 预期的血缘关系
         String[][] expectedArray = {
                 {"datagen_source", "id", "print_sink", "id"},
                 {"datagen_source", "name", "print_sink", "name"},
                 {"datagen_source", "make_time", "print_sink", "make_time"}
         };
+        // 分析血缘关系
         analyzeLineage(sql, expectedArray);
-
     }
 
     /**
-     * Create kafka source table st
+     * 创建Kafka源表 ST。
+     * 表结构：
+     * - make_time：通过 PROCTIME() 定义的处理时间字段。
+     * - a, b：字符串类型字段。
+     * 表特性：
+     * - 使用Kafka作为数据源。
+     * - 配置了JSON格式的消息解析。
      */
     protected void createTableOfST() {
         context.execute("DROP TABLE IF EXISTS ST ");
@@ -116,7 +112,12 @@ public class ProctimeTest extends AbstractBasicTest {
     }
 
     /**
-     * Create print sink table tt_first_proctime
+     * 创建打印Sink表 TT，首字段为 TIMESTAMP(3) 类型。
+     * 表结构：
+     * - make_time：时间戳字段。
+     * - A, B：字符串类型字段。
+     * 表特性：
+     * - 使用打印Connector，用于调试和展示数据。
      */
     protected void createTableOfWithFirstProcTime() {
         context.execute("DROP TABLE IF EXISTS TT ");
@@ -131,7 +132,13 @@ public class ProctimeTest extends AbstractBasicTest {
     }
 
     /**
-     * Create datagen source table datagen_source
+     * 创建Datagen源表 datagen_source。
+     * 表结构：
+     * - id：整型字段。
+     * - name：字符串字段。
+     * - make_time：通过 PROCTIME() 定义的处理时间字段。
+     * 表特性：
+     * - 使用DatagenConnector生成数据。
      */
     protected void createTableOfDatagenSource() {
         context.execute("DROP TABLE IF EXISTS datagen_source ");
@@ -146,7 +153,13 @@ public class ProctimeTest extends AbstractBasicTest {
     }
 
     /**
-     * Create print sink table print_sink
+     * 创建打印Sink表 print_sink。
+     * 表结构：
+     * - id：整型字段。
+     * - name：字符串字段。
+     * - make_time：时间戳字段。
+     * 表特性：
+     * - 使用打印Connector，用于调试和展示数据。
      */
     protected void createTableOfPrintSink() {
         context.execute("DROP TABLE IF EXISTS print_sink ");

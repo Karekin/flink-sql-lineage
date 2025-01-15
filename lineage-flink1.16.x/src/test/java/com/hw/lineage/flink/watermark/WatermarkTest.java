@@ -1,21 +1,3 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.hw.lineage.flink.watermark;
 
 import com.hw.lineage.flink.basic.AbstractBasicTest;
@@ -24,27 +6,34 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * @description: WatermarkTest
- * @author: HamaWhite
+ * @description: WatermarkTest类，用于测试带有水印（Watermark）的表在 Flink 中的操作及数据血缘关系解析。
+ * 测试覆盖以下场景：
+ * - 从带有水印的 MySQL CDC 表中读取数据并写入 Hudi 表。
+ * - 将带有水印的 MySQL CDC 表与维表（Dim Table）进行 Join，并写入 Hudi 表。
+ * 水印用于处理事件时间数据，确保对延迟事件的处理。
+ * </p>
  */
 public class WatermarkTest extends AbstractBasicTest {
 
+    /**
+     * 在每个测试用例执行之前，创建测试所需的表。
+     */
     @Before
     public void createTable() {
-        // create mysql cdc table ods_mysql_users_watermark
+        // 创建带有水印的 MySQL CDC 表 ods_mysql_users_watermark
         createTableOfOdsMysqlUsersWatermark();
 
-        // create mysql dim table dim_mysql_company
+        // 创建 MySQL 维表 dim_mysql_company
         createTableOfDimMysqlCompany();
 
-        // create hudi sink table dwd_hudi_users
+        // 创建 Hudi Sink 表 dwd_hudi_users
         createTableOfDwdHudiUsers();
     }
 
     /**
-     * insert-select-watermark.
+     * 测试场景：从带有水印的 MySQL CDC 表中读取数据并写入 Hudi 表。
      * <p>
-     * insert into hudi table from mysql cdc stream table.
+     * SQL 功能：将 MySQL 表 ods_mysql_users_watermark 的数据处理后插入到 Hudi 表 dwd_hudi_users 中。
      */
     @Test
     public void testInsertSelectWatermark() {
@@ -59,6 +48,7 @@ public class WatermarkTest extends AbstractBasicTest {
                 "FROM" +
                 "   ods_mysql_users_watermark";
 
+        // 预期的血缘关系
         String[][] expectedArray = {
                 {"ods_mysql_users_watermark", "id", "dwd_hudi_users", "id"},
                 {"ods_mysql_users_watermark", "name", "dwd_hudi_users", "name"},
@@ -69,14 +59,15 @@ public class WatermarkTest extends AbstractBasicTest {
                         "DATE_FORMAT(birthday, 'yyyyMMdd')"}
         };
 
+        // 分析血缘关系
         analyzeLineage(sql, expectedArray);
     }
 
     /**
-     * insert-select-two-table-watermark join.
+     * 测试场景：从带有水印的 MySQL CDC 表与维表进行 Join 操作，并将结果写入 Hudi 表。
      * <p>
-     * insert into hudi table from mysql cdc(watermark) stream join mysql dim table, which has system udf
-     * CONCAT
+     * SQL 功能：将 MySQL 表 ods_mysql_users_watermark 与维表 dim_mysql_company 按 ID 进行关联，
+     * 将关联结果插入到 Hudi 表 dwd_hudi_users 中。
      */
     @Test
     public void testInsertSelectTwoJoinWatermark() {
@@ -95,6 +86,7 @@ public class WatermarkTest extends AbstractBasicTest {
                 "ON " +
                 "   a.id = b.user_id";
 
+        // 预期的血缘关系
         String[][] expectedArray = {
                 {"ods_mysql_users_watermark", "id", "dwd_hudi_users", "id"},
                 {"ods_mysql_users_watermark", "name", "dwd_hudi_users", "name",
@@ -108,7 +100,8 @@ public class WatermarkTest extends AbstractBasicTest {
                         "DATE_FORMAT(birthday, 'yyyyMMdd')"}
         };
 
+        // 分析血缘关系
         analyzeLineage(sql, expectedArray);
-
     }
 }
+
