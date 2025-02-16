@@ -465,6 +465,7 @@ public class RelMdColumnOrigins implements MetadataHandler<BuiltInMetadata.Colum
                     // 处理表函数的特殊列
                     RexCall rexCall = (RexCall) rel.getCall();
                     List<RexNode> operands = rexCall.getOperands();
+                    // TODO 为什么要 operands.get(1) ？？？
                     RexInputRef rexInputRef = (RexInputRef) ((RexCall) operands.get(1)).getOperands().get(0);
                     set = mq.getColumnOrigins(input, rexInputRef.getIndex());
 

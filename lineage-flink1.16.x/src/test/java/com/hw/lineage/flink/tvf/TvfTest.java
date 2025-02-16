@@ -36,6 +36,13 @@ public class TvfTest extends AbstractBasicTest {
      * 测试场景：使用 TUMBLE 窗口函数，窗口化处理数据。
      * <p>
      * SQL 功能：将 MySQL 表 bid 的数据按 10 分钟滚动窗口进行窗口化，并插入到 print_sink 表。
+     *
+     * RelNode.explain:
+     * LogicalProject(bid_time=[$0], price=[$1], item=[$2], window_start=[$3], window_end=[$4], window_time=[$5])
+     *   LogicalTableFunctionScan(invocation=[TUMBLE($2, DESCRIPTOR($0), 600000:INTERVAL MINUTE)], rowType=[RecordType(TIMESTAMP(3) *ROWTIME* bid_time, DECIMAL(10, 2) price, VARCHAR(2147483647) item, TIMESTAMP(3) window_start, TIMESTAMP(3) window_end, TIMESTAMP(3) *ROWTIME* window_time)])
+     *     LogicalProject(bid_time=[$0], price=[$1], item=[$2])
+     *       LogicalWatermarkAssigner(rowtime=[bid_time], watermark=[-($0, 1000:INTERVAL SECOND)])
+     *         LogicalTableScan(table=[[hive, default, bid]])
      */
     @Test
     public void testTumble() {
@@ -259,7 +266,7 @@ public class TvfTest extends AbstractBasicTest {
                 "       'hostname'  = '127.0.0.1'            ," +
                 "       'port'      = '3306'                 ," +
                 "       'username'  = 'root'                 ," +
-                "       'password'  = 'xxx'                  ," +
+                "       'password'  = '123456'                  ," +
                 "       'server-time-zone' = 'Asia/Shanghai' ," +
                 "       'database-name' = 'demo'             ," +
                 "       'table-name'    = 'users'            ," +

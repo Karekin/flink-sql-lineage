@@ -45,32 +45,38 @@ public class CepTest extends AbstractBasicTest {
      * 2. MATCH_RECOGNIZE 通过定义模式 (A B+ C) 来匹配温度高于、低于特定阈值的序列；
      * 3. 提取 ts、temperature 等字段，通过 LAST() 和 AVG() 等函数计算结果；
      * 4. 将结果插入到 print_sink 表并验证字段血缘是否正确解析。
+     *
+     * RelNode explain：
+     * LogicalProject(rack_id=[$0], start_ts=[$1], end_ts=[$2], start_temp=[$3], end_temp=[$4], avg_temp=[$5])
+     *   LogicalMatch(partition=[[0]], order=[[1 ASC-nulls-first]], outputFields=[[rack_id, start_ts, end_ts, start_temp, end_temp, avg_temp]], allRows=[false], after=[FLAG(SKIP TO NEXT ROW)], pattern=[((_UTF-16LE'A', PATTERN_QUANTIFIER(_UTF-16LE'B', 1, -1, false)), _UTF-16LE'C')], isStrictStarts=[false], isStrictEnds=[false], interval=[90000:INTERVAL SECOND], subsets=[[]], patternDefinitions=[[<(PREV(A.$2, 0), 50), >=(PREV(B.$2, 0), 50), <(PREV(C.$2, 0), 50)]], inputFields=[[rack_id, ts, temperature]])
+     *     LogicalWatermarkAssigner(rowtime=[ts], watermark=[-($1, 1000:INTERVAL SECOND)])
+     *       LogicalTableScan(table=[[hive, default, temperature_source]])
      */
     @Test
     public void testInsertSelectCep() {
         // 匹配模式：A(temperature<50), B(temperature>=50)，C(temperature<50)
         // 当匹配到上述模式时，将测量结果输出到 print_sink 表
-        String sql = "INSERT INTO print_sink                                " +
-                "SELECT                                                     " +
-                "   *                                                       " +
-                "FROM                                                       " +
-                "   temperature_source MATCH_RECOGNIZE (                    " +
-                "       PARTITION BY rack_id                                " +
-                "       ORDER BY ts                                         " +
-                "       MEASURES                                            " +
-                "           A.ts as start_ts,                               " +
-                "           LAST(B.ts) as end_ts,                           " +
-                "           A.temperature as start_temp,                    " +
-                "           LAST(B.temperature) as end_temp,                " +
-                "           AVG(B.temperature) as avg_temp                  " +
-                "           ONE ROW PER MATCH                               " +
-                "           AFTER MATCH SKIP TO NEXT ROW                    " +
-                "           PATTERN (A B+ C) WITHIN INTERVAL '90' second    " +
-                "           DEFINE                                          " +
-                "               A as A.temperature < 50,                    " +
-                "               B as B.temperature >=50,                    " +
-                "               C as C.temperature < 50                     " +
-                "    )";
+        String sql = "INSERT INTO print_sink " +
+                "SELECT " +
+                "    * " +
+                "FROM temperature_source " +
+                "MATCH_RECOGNIZE ( " +
+                "    PARTITION BY rack_id " +
+                "    ORDER BY ts " +
+                "    MEASURES " +
+                "        A.ts AS start_ts, " +
+                "        LAST(B.ts) AS end_ts, " +
+                "        A.temperature AS start_temp, " +
+                "        LAST(B.temperature) AS end_temp, " +
+                "        AVG(B.temperature) AS avg_temp " +
+                "    ONE ROW PER MATCH " +
+                "    AFTER MATCH SKIP TO NEXT ROW " +
+                "    PATTERN (A B+ C) WITHIN INTERVAL '90' SECOND " +
+                "    DEFINE " +
+                "        A AS A.temperature < 50, " +
+                "        B AS B.temperature >= 50, " +
+                "        C AS C.temperature < 50 " +
+                ")";
 
         // 预期的字段血缘，二维数组中每个条目依次表示：
         // { 源表, 源字段, 目标表, 目标字段, (可选)表达式信息 }
